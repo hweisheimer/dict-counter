@@ -19,14 +19,14 @@ func TestNormalize_LowersCase(t *testing.T) {
 }
 
 func TestNormalize_RemovesSimpleAccents(t *testing.T) {
-	expected := "e"
-	actual := normalize("\u00e9")
+	expected := "angstrome"
+	actual := normalize("Ångström\u00e9")
 	assert.Equal(t, expected, actual)
 }
 
 func TestNormalize_RemovesCursedAccents(t *testing.T) {
-	expected := "he comes"
-	actual := normalize("h̺̼̞̼͇̮̖̭̗̳̳̣̜̦̬̟̻̄͐͗̎͂ͤ̄̌͆͂ͩ͑̿͛̏͂̇̚e͓͖̰̹̯̬͙̼͇̊ͯͫ̈̊ͩ̔ͣͤ̾͂ ̮̭̙̂ͪ̏̿ͫ̇̐̆͗̐͂ͮͣ̂c͔̪̣͊͋͑̆ͪͯ̍ͩ̎͌͛͋̆͑͗ͅo͍̭̟͎͓̹̖͔̱̼͉̪̪͕͖̭͐̇ͤͯ͛͂͛̅̔̓̋͒̊̐ͩm̯̭͖͚͇̯̠̫͔̼͔̟̯̪̲͛͐̈̃̀̈́́ͨ̽̔̏ͪ̅͐͐͗̂ͮ̔ê͎͚͎͇̣̟̺͇̲͉̱̫ͬ̒̐̉ͥ̐ͭͭͫ̔͐̈́ͨ͑s͉̫̥̬̠̤̭̙̿̑̃̾͒̌ͧ͛̍̚")
+	expected := "hecomes"
+	actual := normalize("h̺̼̞̼͇̮̖̭̗̳̳̣̜̦̬̟̻̄͐͗̎͂ͤ̄̌͆͂ͩ͑̿͛̏͂̇̚e͓͖̰̹̯̬͙̼͇̊ͯͫ̈̊ͩ̔ͣͤ̾͂c͔̪̣͊͋͑̆ͪͯ̍ͩ̎͌͛͋̆͑͗ͅo͍̭̟͎͓̹̖͔̱̼͉̪̪͕͖̭͐̇ͤͯ͛͂͛̅̔̓̋͒̊̐ͩm̯̭͖͚͇̯̠̫͔̼͔̟̯̪̲͛͐̈̃̀̈́́ͨ̽̔̏ͪ̅͐͐͗̂ͮ̔ê͎͚͎͇̣̟̺͇̲͉̱̫ͬ̒̐̉ͥ̐ͭͭͫ̔͐̈́ͨ͑s͉̫̥̬̠̤̭̙̿̑̃̾͒̌ͧ͛̍̚")
 	assert.Equal(t, expected, actual)
 }
 
@@ -42,12 +42,42 @@ func TestNormalize_RemovesWhitespace(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestCountCharacters_ContainsAllKeys(t *testing.T) {
-	expectedKeys := []byte{'a', 'b', 'c'}
+func TestCountCharacters_AccumulatesAllKeys(t *testing.T) {
+	expectedKeys := []rune{'a', 'b', 'c'}
 	actualCounts := countCharacters("bbbaacccc")
-	actualKeys := []byte{}
+	actualKeys := []rune{}
 	for key := range actualCounts {
 		actualKeys = append(actualKeys, key)
 	}
 	assert.ElementsMatch(t, expectedKeys, actualKeys, "Character count keys do not match")
+}
+
+func TestCountCharacters_AccumulatesAllOccurences(t *testing.T) {
+	expectedCounts := map[rune]uint32{
+		'a': 2,
+		'b': 3,
+		'c': 4,
+	}
+	actualCounts := countCharacters("bbbaacccc")
+	assert.InDeltaMapValues(t, expectedCounts, actualCounts, 0, "Character count values do not match")
+}
+
+func TestNormalizeAndCountCharacters_CountsEmbellishedCharactesSanely(t *testing.T) {
+	expectedCounts := map[rune]uint32{
+		'a': 4,
+		'n': 2,
+		'd': 1,
+		'w': 1,
+		'e': 2,
+		'b': 2,
+		'y': 1,
+		'g': 1,
+		's': 1,
+		't': 1,
+		'r': 1,
+		'o': 1,
+		'm': 1,
+	}
+	actualCounts := countCharacters(normalize("and a w\u00e9e baby Ångström"))
+	assert.InDeltaMapValues(t, expectedCounts, actualCounts, 0, "Character count values do not match")
 }

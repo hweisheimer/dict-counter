@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 func main() {
@@ -35,8 +37,11 @@ func main() {
 
 	wordBlob = normalize(wordBlob)
 	charCounts := countCharacters(wordBlob)
-	fmt.Println("Character Counts:\n", charCounts)
-	// TODO: the things
+	for key, value := range charCounts {
+		fmt.Printf("'%s': %d\n", string(key), value)
+	}
+
+	// TODO: histograms
 }
 
 func normalize(words string) string {
@@ -46,20 +51,25 @@ func normalize(words string) string {
 	// whitespace (\s) won't match file boundaries
 	matcher := regexp.MustCompile(`\b.+'s\b`)
 
+	// drops all possessive forms, because they are being used as separators
+	// note that line endings and such are retained for the moment
 	wordsSlice := matcher.Split(words, -1)
 	words = strings.Join(wordsSlice, "")
-	cleanWordRunes := slices.DeleteFunc([]rune(words), func(r rune) bool {
-		// would be more comprehensive to remove anything that's not alpha, but then I'd need another test ;)
-		return unicode.In(r, unicode.Punct, unicode.White_Space)
-	})
 
-	return string(cleanWordRunes)
+	// could probably do this with utf8string package as well
+	words = norm.NFD.String(words) // decompose unicode characters into base + embellishments
+	wordRunes := []rune(words)
+	wordRunes = slices.DeleteFunc(wordRunes, func(r rune) bool {
+		// handily discards punctuation, accents, and misc junk that may be in the file
+		return !unicode.In(r, unicode.Letter)
+	})
+	return string(wordRunes)
 }
 
-func countCharacters(words string) map[byte]uint32 {
-	allTheBytes := []byte(words)
-	countMap := make(map[byte]uint32)
-	for _, val := range allTheBytes {
+func countCharacters(words string) map[rune]uint32 {
+	// allTheBytes := []rune(words)
+	countMap := make(map[rune]uint32)
+	for _, val := range words {
 		countMap[val]++
 	}
 	return countMap
