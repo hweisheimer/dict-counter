@@ -12,7 +12,7 @@ import (
 
 func main() {
 	instat, _ := os.Stdin.Stat()
-	var wordList string
+	var wordBlob string
 
 	if len(os.Args) > 1 {
 		wordListBytes, err := os.ReadFile(os.Args[1])
@@ -20,20 +20,22 @@ func main() {
 			fmt.Println("Could not read file", os.Args[1], err)
 			os.Exit(1)
 		}
-		wordList = string(wordListBytes)
+		wordBlob = string(wordListBytes)
 	} else if instat.Size() > 0 {
 		in, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Println("Could not read STDIN", err)
 			os.Exit(1)
 		}
-		wordList = string(in)
+		wordBlob = string(in)
 	} else {
 		fmt.Println("Expected filename or STDIN redirection (y pipes no work in golang?)")
 		os.Exit(1)
 	}
 
-	wordList = normalize(wordList)
+	wordBlob = normalize(wordBlob)
+	charCounts := countCharacters(wordBlob)
+	fmt.Println("Character Counts:\n", charCounts)
 	// TODO: the things
 }
 
@@ -52,4 +54,13 @@ func normalize(words string) string {
 	})
 
 	return string(cleanWordRunes)
+}
+
+func countCharacters(words string) map[byte]uint32 {
+	allTheBytes := []byte(words)
+	countMap := make(map[byte]uint32)
+	for _, val := range allTheBytes {
+		countMap[val]++
+	}
+	return countMap
 }
