@@ -32,6 +32,6 @@ func main() {
 	fmt.Println("Received word list contents:\n", wordList)
 }
 
-func Normalize(words string) string {
+func normalize(words string) string {
 	return "lol"
 }
