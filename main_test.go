@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,4 +81,34 @@ func TestNormalizeAndCountCharacters_CountsEmbellishedCharactesSanely(t *testing
 	}
 	actualCounts := countCharacters(normalize("and a w\u00e9e baby Ångström"))
 	assert.InDeltaMapValues(t, expectedCounts, actualCounts, 0, "Character count values do not match")
+}
+
+func TestBuildHistogram_SortsKeys(t *testing.T) {
+	counts := map[rune]uint32{
+		'b': 12345,
+		'a': 54321,
+		'c': 200,
+	}
+	rawPlot := buildHistogram(counts, 10)
+	plotRows := strings.Split(rawPlot, "\n")
+
+	countPassed := assert.Len(t, plotRows, 3)
+	if countPassed {
+		assert.Equal(t, 'a', rune(plotRows[0][0]))
+		assert.Equal(t, 'b', rune(plotRows[1][0]))
+		assert.Equal(t, 'c', rune(plotRows[2][0]))
+	}
+}
+
+func TestBuildHistogram_ScalesToWidth(t *testing.T) {
+	counts := map[rune]uint32{
+		'b': 200,
+		'o': 300,
+		'p': 600,
+	}
+	expectedPlot := `b |>>> (200)
+o |>>>>> (300)
+p |>>>>>>>>>> (600)`
+	rawPlot := buildHistogram(counts, 10)
+	assert.Equal(t, expectedPlot, rawPlot)
 }

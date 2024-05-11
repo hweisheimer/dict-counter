@@ -37,11 +37,12 @@ func main() {
 
 	wordBlob = normalize(wordBlob)
 	charCounts := countCharacters(wordBlob)
-	for key, value := range charCounts {
-		fmt.Printf("'%s': %d\n", string(key), value)
-	}
 
-	// TODO: histograms
+	histogram := buildHistogram(charCounts, 50)
+	if os.Getenv("lulz") != "" {
+		histogram = strings.ReplaceAll(histogram, ">", "\U0001f95a")
+	}
+	fmt.Println(histogram)
 }
 
 func normalize(words string) string {
@@ -57,20 +58,42 @@ func normalize(words string) string {
 	words = strings.Join(wordsSlice, "")
 
 	// could probably do this with utf8string package as well
-	words = norm.NFD.String(words) // decompose unicode characters into base + embellishments
+	words = norm.NFD.String(words) // decompose unicode characters into base + combining marks
 	wordRunes := []rune(words)
 	wordRunes = slices.DeleteFunc(wordRunes, func(r rune) bool {
-		// handily discards punctuation, accents, and misc junk that may be in the file
+		// handily discards punctuation, diacritics, and misc junk that may be in the file
 		return !unicode.In(r, unicode.Letter)
 	})
 	return string(wordRunes)
 }
 
 func countCharacters(words string) map[rune]uint32 {
-	// allTheBytes := []rune(words)
 	countMap := make(map[rune]uint32)
 	for _, val := range words {
 		countMap[val]++
 	}
 	return countMap
+}
+
+func buildHistogram(charCounts map[rune]uint32, chartWidth int) string {
+	keys := []rune{}
+	maxCount := uint32(0)
+	for key, value := range charCounts {
+		keys = append(keys, key)
+		if value > maxCount {
+			maxCount = value
+		}
+	}
+	slices.Sort(keys)
+
+	chart := ""
+	for index, character := range keys {
+		count := charCounts[character]
+		renderWidth := int(float32(count) / float32(maxCount) * float32(chartWidth))
+		chart += fmt.Sprintf("%s |%s (%d)", string(character), strings.Repeat(">", int(renderWidth)), count)
+		if index+1 < len(keys) {
+			chart += "\n"
+		}
+	}
+	return chart
 }
